@@ -1,0 +1,3222 @@
+openapi: 3.0.3
+info:
+  title: Folio Basic ERP API
+  version: 1.0.0
+  description: Workspace-isolated Basic ERP. Sign in above to try requests. Admin
+    manages team/settings; Manager writes business records; Staff adds/updates business
+    records without deletion. New lists use limit/offset pagination, while Customers
+    keeps its existing array contract. Posted documents and stock/payment/return history
+    are immutable. This is a local V1 backend, not a statutory double-entry accounting
+    system.
+paths:
+  /api/accounting/:
+    get:
+      operationId: accounting_retrieve
+      description: Basic cash and balance overview, not a double-entry general ledger.
+      parameters:
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: date_to
+        schema:
+          type: string
+          format: date
+      tags:
+      - accounting
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Summary'
+          description: ''
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountError'
+          description: ''
+  /api/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      tags:
+      - Authentication
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountError'
+          description: ''
+  /api/auth/session/:
+    get:
+      operationId: auth_session_retrieve
+      tags:
+      - Authentication
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+          description: ''
+  /api/auth/signup/:
+    post:
+      operationId: auth_signup_create
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequestRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountError'
+          description: ''
+  /api/customers/:
+    get:
+      operationId: customers_list
+      description: Session-authenticated customer records scoped to their owner.
+      parameters:
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - customers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Customer'
+          description: ''
+    post:
+      operationId: customers_create
+      description: Session-authenticated customer records scoped to their owner.
+      tags:
+      - customers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+  /api/customers/{id}/:
+    get:
+      operationId: customers_retrieve
+      description: Session-authenticated customer records scoped to their owner.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this customer.
+        required: true
+      tags:
+      - customers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+    put:
+      operationId: customers_update
+      description: Session-authenticated customer records scoped to their owner.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this customer.
+        required: true
+      tags:
+      - customers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+    patch:
+      operationId: customers_partial_update
+      description: Session-authenticated customer records scoped to their owner.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this customer.
+        required: true
+      tags:
+      - customers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+    delete:
+      operationId: customers_destroy
+      description: Session-authenticated customer records scoped to their owner.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this customer.
+        required: true
+      tags:
+      - customers
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/dashboard/:
+    get:
+      operationId: dashboard_retrieve
+      description: Eight summary metrics, recent documents/payments, low-stock products,
+        monthly sales.
+      parameters:
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: date_to
+        schema:
+          type: string
+          format: date
+      tags:
+      - dashboard
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+          description: ''
+  /api/documents/:
+    get:
+      operationId: documents_list
+      description: |-
+        Sales, purchase orders, and purchase bills. Only drafts may be edited/deleted.
+
+        Use kind to filter the list. Create a draft with products, then POST its post endpoint.
+        Posting is atomic and cannot run twice. A purchase order reserves no stock or money.
+      parameters:
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: date_to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: kind
+        schema:
+          type: string
+          enum:
+          - Purchase Bill
+          - Purchase Order
+          - Sale
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - Draft
+          - Posted
+      tags:
+      - documents
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDocumentReadList'
+          description: ''
+    post:
+      operationId: documents_create
+      description: |-
+        Sales, purchase orders, and purchase bills. Only drafts may be edited/deleted.
+
+        Use kind to filter the list. Create a draft with products, then POST its post endpoint.
+        Posting is atomic and cannot run twice. A purchase order reserves no stock or money.
+      tags:
+      - documents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentRequest'
+            examples:
+              SaleDraft-ReplaceIDsWithYourRecords:
+                value:
+                  kind: Sale
+                  customer: 1
+                  date: '2026-09-07'
+                  discount: '0.00'
+                  items:
+                  - product: 1
+                    quantity: 2
+                    price: '35.00'
+                    tax: '5.00'
+                summary: Sale draft - replace IDs with your records
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentRead'
+          description: ''
+  /api/documents/{id}/:
+    get:
+      operationId: documents_retrieve
+      description: |-
+        Sales, purchase orders, and purchase bills. Only drafts may be edited/deleted.
+
+        Use kind to filter the list. Create a draft with products, then POST its post endpoint.
+        Posting is atomic and cannot run twice. A purchase order reserves no stock or money.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this document.
+        required: true
+      tags:
+      - documents
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentRead'
+          description: ''
+    put:
+      operationId: documents_update
+      description: |-
+        Sales, purchase orders, and purchase bills. Only drafts may be edited/deleted.
+
+        Use kind to filter the list. Create a draft with products, then POST its post endpoint.
+        Posting is atomic and cannot run twice. A purchase order reserves no stock or money.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this document.
+        required: true
+      tags:
+      - documents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentRead'
+          description: ''
+    patch:
+      operationId: documents_partial_update
+      description: |-
+        Sales, purchase orders, and purchase bills. Only drafts may be edited/deleted.
+
+        Use kind to filter the list. Create a draft with products, then POST its post endpoint.
+        Posting is atomic and cannot run twice. A purchase order reserves no stock or money.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this document.
+        required: true
+      tags:
+      - documents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDocumentRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentRead'
+          description: ''
+    delete:
+      operationId: documents_destroy
+      description: |-
+        Sales, purchase orders, and purchase bills. Only drafts may be edited/deleted.
+
+        Use kind to filter the list. Create a draft with products, then POST its post endpoint.
+        Posting is atomic and cannot run twice. A purchase order reserves no stock or money.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this document.
+        required: true
+      tags:
+      - documents
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/documents/{id}/convert-to-bill/:
+    post:
+      operationId: documents_convert_to_bill_create
+      description: |-
+        Sales, purchase orders, and purchase bills. Only drafts may be edited/deleted.
+
+        Use kind to filter the list. Create a draft with products, then POST its post endpoint.
+        Posting is atomic and cannot run twice. A purchase order reserves no stock or money.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this document.
+        required: true
+      tags:
+      - documents
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentRead'
+          description: ''
+  /api/documents/{id}/payments/:
+    post:
+      operationId: documents_payments_create
+      description: |-
+        Sales, purchase orders, and purchase bills. Only drafts may be edited/deleted.
+
+        Use kind to filter the list. Create a draft with products, then POST its post endpoint.
+        Posting is atomic and cannot run twice. A purchase order reserves no stock or money.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this document.
+        required: true
+      tags:
+      - documents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+          description: ''
+  /api/documents/{id}/post/:
+    post:
+      operationId: documents_post_create
+      description: |-
+        Sales, purchase orders, and purchase bills. Only drafts may be edited/deleted.
+
+        Use kind to filter the list. Create a draft with products, then POST its post endpoint.
+        Posting is atomic and cannot run twice. A purchase order reserves no stock or money.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this document.
+        required: true
+      tags:
+      - documents
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentRead'
+          description: ''
+  /api/expenses/:
+    get:
+      operationId: expenses_list
+      description: Expenses are paid immediately. Edits update their linked cash entry;
+        deletion removes both.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: date_to
+        schema:
+          type: string
+          format: date
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: method
+        schema:
+          type: string
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - expenses
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedExpenseList'
+          description: ''
+    post:
+      operationId: expenses_create
+      description: Expenses are paid immediately. Edits update their linked cash entry;
+        deletion removes both.
+      tags:
+      - expenses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+          description: ''
+  /api/expenses/{id}/:
+    get:
+      operationId: expenses_retrieve
+      description: Expenses are paid immediately. Edits update their linked cash entry;
+        deletion removes both.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this expense.
+        required: true
+      tags:
+      - expenses
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+          description: ''
+    put:
+      operationId: expenses_update
+      description: Expenses are paid immediately. Edits update their linked cash entry;
+        deletion removes both.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this expense.
+        required: true
+      tags:
+      - expenses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+          description: ''
+    patch:
+      operationId: expenses_partial_update
+      description: Expenses are paid immediately. Edits update their linked cash entry;
+        deletion removes both.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this expense.
+        required: true
+      tags:
+      - expenses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedExpenseRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+          description: ''
+    delete:
+      operationId: expenses_destroy
+      description: Expenses are paid immediately. Edits update their linked cash entry;
+        deletion removes both.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this expense.
+        required: true
+      tags:
+      - expenses
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/products/:
+    get:
+      operationId: products_list
+      description: Product catalogue and current inventory. Stock is read-only; use
+        stock-movements.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - Active
+          - Inactive
+      - in: query
+        name: stock_status
+        schema:
+          type: string
+          enum:
+          - In Stock
+          - Low Stock
+          - Out of Stock
+      tags:
+      - products
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductList'
+          description: ''
+    post:
+      operationId: products_create
+      description: Product catalogue and current inventory. Stock is read-only; use
+        stock-movements.
+      tags:
+      - products
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+            examples:
+              Product:
+                value:
+                  name: Keyboard
+                  sku: KEY-001
+                  category: Electronics
+                  cost: '20.00'
+                  price: '35.00'
+                  min: 5
+                  unit: pcs
+                  tax: '5.00'
+                  status: Active
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+  /api/products/{id}/:
+    get:
+      operationId: products_retrieve
+      description: Product catalogue and current inventory. Stock is read-only; use
+        stock-movements.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this product.
+        required: true
+      tags:
+      - products
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+    put:
+      operationId: products_update
+      description: Product catalogue and current inventory. Stock is read-only; use
+        stock-movements.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this product.
+        required: true
+      tags:
+      - products
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+    patch:
+      operationId: products_partial_update
+      description: Product catalogue and current inventory. Stock is read-only; use
+        stock-movements.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this product.
+        required: true
+      tags:
+      - products
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProductRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+    delete:
+      operationId: products_destroy
+      description: Product catalogue and current inventory. Stock is read-only; use
+        stock-movements.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this product.
+        required: true
+      tags:
+      - products
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/reports/{report}/:
+    get:
+      operationId: reports_retrieve
+      description: |-
+        Date-filtered report. Summary covers the full workspace/date range; search affects rows only.
+
+        Customer/supplier balances are cumulative through date_to, ignoring date_from.
+        Inventory is current. Results are paged with limit/offset; count is the full result count.
+      parameters:
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: date_to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 50
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - in: path
+        name: report
+        schema:
+          type: string
+          enum:
+          - customer-balances
+          - expenses
+          - inventory
+          - profit-loss
+          - purchases
+          - sales
+          - supplier-balances
+        required: true
+      - in: query
+        name: search
+        schema:
+          type: string
+      tags:
+      - reports
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+          description: ''
+  /api/returns/:
+    get:
+      operationId: returns_list
+      description: |-
+        Immutable sales/purchase returns. Values come from the original document lines.
+
+        Returns change stock and reduce the amount due. Any resulting credit can be refunded
+        through the document payments action with refund=true. Do not resubmit successful returns.
+      parameters:
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: date_to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: document
+        schema:
+          type: integer
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - returns
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReturnList'
+          description: ''
+    post:
+      operationId: returns_create
+      description: |-
+        Immutable sales/purchase returns. Values come from the original document lines.
+
+        Returns change stock and reduce the amount due. Any resulting credit can be refunded
+        through the document payments action with refund=true. Do not resubmit successful returns.
+      tags:
+      - returns
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReturnInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Return'
+          description: ''
+  /api/returns/{id}/:
+    get:
+      operationId: returns_retrieve
+      description: |-
+        Immutable sales/purchase returns. Values come from the original document lines.
+
+        Returns change stock and reduce the amount due. Any resulting credit can be refunded
+        through the document payments action with refund=true. Do not resubmit successful returns.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this return.
+        required: true
+      tags:
+      - returns
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Return'
+          description: ''
+  /api/settings/:
+    get:
+      operationId: settings_retrieve
+      tags:
+      - settings
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+          description: ''
+    patch:
+      operationId: settings_partial_update
+      tags:
+      - settings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCompanyRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+          description: ''
+  /api/stock-movements/:
+    get:
+      operationId: stock_movements_list
+      parameters:
+      - in: query
+        name: document
+        schema:
+          type: integer
+      - in: query
+        name: kind
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - in: query
+        name: product
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - stock-movements
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedStockList'
+          description: ''
+    post:
+      operationId: stock_movements_create
+      description: Record Stock In, Stock Out, or an absolute stock Adjustment with
+        a reason.
+      tags:
+      - stock-movements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stock'
+          description: ''
+  /api/stock-movements/{id}/:
+    get:
+      operationId: stock_movements_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this stock movement.
+        required: true
+      tags:
+      - stock-movements
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stock'
+          description: ''
+  /api/suppliers/:
+    get:
+      operationId: suppliers_list
+      description: Suppliers belonging to the signed-in workspace. Referenced records
+        cannot be deleted.
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - Active
+          - Inactive
+      tags:
+      - suppliers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSupplierList'
+          description: ''
+    post:
+      operationId: suppliers_create
+      description: Suppliers belonging to the signed-in workspace. Referenced records
+        cannot be deleted.
+      tags:
+      - suppliers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+          description: ''
+  /api/suppliers/{id}/:
+    get:
+      operationId: suppliers_retrieve
+      description: Suppliers belonging to the signed-in workspace. Referenced records
+        cannot be deleted.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this supplier.
+        required: true
+      tags:
+      - suppliers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+          description: ''
+    put:
+      operationId: suppliers_update
+      description: Suppliers belonging to the signed-in workspace. Referenced records
+        cannot be deleted.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this supplier.
+        required: true
+      tags:
+      - suppliers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+          description: ''
+    patch:
+      operationId: suppliers_partial_update
+      description: Suppliers belonging to the signed-in workspace. Referenced records
+        cannot be deleted.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this supplier.
+        required: true
+      tags:
+      - suppliers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSupplierRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+          description: ''
+    delete:
+      operationId: suppliers_destroy
+      description: Suppliers belonging to the signed-in workspace. Referenced records
+        cannot be deleted.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this supplier.
+        required: true
+      tags:
+      - suppliers
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/transactions/:
+    get:
+      operationId: transactions_list
+      description: 'Read-only cash register: payments, refunds, paid expenses, and
+        opening balances.'
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: date_to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: document
+        schema:
+          type: integer
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: method
+        schema:
+          type: string
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - transactions
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransactionList'
+          description: ''
+  /api/transactions/{id}/:
+    get:
+      operationId: transactions_retrieve
+      description: 'Read-only cash register: payments, refunds, paid expenses, and
+        opening balances.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this transaction.
+        required: true
+      tags:
+      - transactions
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+          description: ''
+  /api/transactions/opening-balance/:
+    post:
+      operationId: transactions_opening_balance_create
+      description: 'Read-only cash register: payments, refunds, paid expenses, and
+        opening balances.'
+      tags:
+      - transactions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpeningBalanceRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+          description: ''
+  /api/users/:
+    get:
+      operationId: users_list
+      description: |-
+        Admin-only team accounts. Creating a user gives access to this workspace.
+
+        Admin manages users/settings, Manager writes business records, Staff creates and updates business records but cannot delete them.
+        DELETE deactivates a member; it does not erase their identity or business history.
+        Workspace roles do not grant access to Django's administrator site.
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: role
+        schema:
+          type: string
+          enum:
+          - Admin
+          - Manager
+          - Staff
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - Active
+          - Inactive
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+    post:
+      operationId: users_create
+      description: |-
+        Admin-only team accounts. Creating a user gives access to this workspace.
+
+        Admin manages users/settings, Manager writes business records, Staff creates and updates business records but cannot delete them.
+        DELETE deactivates a member; it does not erase their identity or business history.
+        Workspace roles do not grant access to Django's administrator site.
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/users/{id}/:
+    get:
+      operationId: users_retrieve
+      description: |-
+        Admin-only team accounts. Creating a user gives access to this workspace.
+
+        Admin manages users/settings, Manager writes business records, Staff creates and updates business records but cannot delete them.
+        DELETE deactivates a member; it does not erase their identity or business history.
+        Workspace roles do not grant access to Django's administrator site.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: users_update
+      description: |-
+        Admin-only team accounts. Creating a user gives access to this workspace.
+
+        Admin manages users/settings, Manager writes business records, Staff creates and updates business records but cannot delete them.
+        DELETE deactivates a member; it does not erase their identity or business history.
+        Workspace roles do not grant access to Django's administrator site.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: users_partial_update
+      description: |-
+        Admin-only team accounts. Creating a user gives access to this workspace.
+
+        Admin manages users/settings, Manager writes business records, Staff creates and updates business records but cannot delete them.
+        DELETE deactivates a member; it does not erase their identity or business history.
+        Workspace roles do not grant access to Django's administrator site.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: users_destroy
+      description: |-
+        Admin-only team accounts. Creating a user gives access to this workspace.
+
+        Admin manages users/settings, Manager writes business records, Staff creates and updates business records but cannot delete them.
+        DELETE deactivates a member; it does not erase their identity or business history.
+        Workspace roles do not grant access to Django's administrator site.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    AccountError:
+      type: object
+      properties:
+        detail:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    AccountUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        role:
+          $ref: '#/components/schemas/WorkspaceRoleEnum'
+        workspace_id:
+          type: integer
+      required:
+      - id
+      - role
+      - username
+      - workspace_id
+    CategoryEnum:
+      enum:
+      - Sales
+      - Purchases
+      - Expenses
+      - Opening balance
+      type: string
+      description: |-
+        * `Sales` - Sales
+        * `Purchases` - Purchases
+        * `Expenses` - Expenses
+        * `Opening balance` - Opening balance
+    Company:
+      type: object
+      properties:
+        company:
+          type: string
+          maxLength: 200
+        email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        phone:
+          type: string
+          maxLength: 30
+        address:
+          type: string
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        prefix:
+          type: string
+          maxLength: 30
+        next_number:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+        low_stock:
+          type: boolean
+        show_address:
+          type: boolean
+    ContactStatusEnum:
+      enum:
+      - Active
+      - Inactive
+      type: string
+      description: |-
+        * `Active` - Active
+        * `Inactive` - Inactive
+    CurrencyEnum:
+      enum:
+      - USD
+      - INR
+      - EUR
+      - GBP
+      type: string
+      description: |-
+        * `USD` - USD
+        * `INR` - INR
+        * `EUR` - EUR
+        * `GBP` - GBP
+    Customer:
+      type: object
+      description: Convert customer records and validate incoming contact details.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        phone:
+          type: string
+          maxLength: 30
+        email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        address:
+          type: string
+        status:
+          $ref: '#/components/schemas/ContactStatusEnum'
+        total:
+          type: string
+          readOnly: true
+        balance:
+          type: string
+          readOnly: true
+        credit:
+          type: string
+          readOnly: true
+      required:
+      - balance
+      - credit
+      - id
+      - name
+      - total
+    CustomerRequest:
+      type: object
+      description: Convert customer records and validate incoming contact details.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        phone:
+          type: string
+          maxLength: 30
+        email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        address:
+          type: string
+        status:
+          $ref: '#/components/schemas/ContactStatusEnum'
+      required:
+      - name
+    Dashboard:
+      type: object
+      properties:
+        sales:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        purchases:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        expenses:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        net_sales_excluding_tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        cost_of_goods:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        profit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        receivables:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        payables:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        customer_credit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        supplier_credit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        cash_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        bank_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        products:
+          type: integer
+        low_stock_items:
+          type: integer
+        basis:
+          type: string
+        recent_sales:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentRead'
+        recent_purchases:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentRead'
+        recent_transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        low_stock_products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        sales_overview:
+          type: array
+          items:
+            $ref: '#/components/schemas/Month'
+      required:
+      - bank_balance
+      - basis
+      - cash_balance
+      - cost_of_goods
+      - customer_credit
+      - expenses
+      - low_stock_items
+      - low_stock_products
+      - net_sales_excluding_tax
+      - payables
+      - products
+      - profit
+      - purchases
+      - receivables
+      - recent_purchases
+      - recent_sales
+      - recent_transactions
+      - sales
+      - sales_overview
+      - supplier_credit
+    DocumentKindEnum:
+      enum:
+      - Sale
+      - Purchase Order
+      - Purchase Bill
+      type: string
+      description: |-
+        * `Sale` - Sale
+        * `Purchase Order` - Purchase Order
+        * `Purchase Bill` - Purchase Bill
+    DocumentRead:
+      type: object
+      description: Response includes immutable line IDs and calculation snapshots.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        number:
+          type: string
+          readOnly: true
+        kind:
+          $ref: '#/components/schemas/DocumentKindEnum'
+        customer:
+          type: integer
+          nullable: true
+        supplier:
+          type: integer
+          nullable: true
+        source_order:
+          type: integer
+          readOnly: true
+          nullable: true
+        date:
+          type: string
+          format: date
+        status:
+          allOf:
+          - $ref: '#/components/schemas/DocumentStatusEnum'
+          readOnly: true
+        discount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        tax_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        cost_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        notes:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Line'
+          readOnly: true
+        balances:
+          type: object
+          properties:
+            returned:
+              type: string
+              format: decimal
+            net_total:
+              type: string
+              format: decimal
+            paid:
+              type: string
+              format: decimal
+            balance:
+              type: string
+              format: decimal
+            credit:
+              type: string
+              format: decimal
+            payment_status:
+              type: string
+              enum:
+              - Paid
+              - Partial
+              - Unpaid
+          readOnly: true
+      required:
+      - balances
+      - cost_total
+      - currency
+      - id
+      - items
+      - kind
+      - number
+      - source_order
+      - status
+      - subtotal
+      - tax_total
+      - total
+    DocumentRequest:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/DocumentKindEnum'
+        customer:
+          type: integer
+          nullable: true
+        supplier:
+          type: integer
+          nullable: true
+        date:
+          type: string
+          format: date
+        discount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        notes:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineInputRequest'
+      required:
+      - items
+      - kind
+    DocumentStatusEnum:
+      enum:
+      - Draft
+      - Posted
+      type: string
+      description: |-
+        * `Draft` - Draft
+        * `Posted` - Posted
+    Expense:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        date:
+          type: string
+          format: date
+        name:
+          type: string
+          maxLength: 200
+        category:
+          type: string
+          maxLength: 100
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        description:
+          type: string
+      required:
+      - category
+      - id
+      - name
+    ExpenseRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        description:
+          type: string
+      required:
+      - category
+      - name
+    Line:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        product:
+          type: integer
+        product_name:
+          type: string
+          maxLength: 200
+        quantity:
+          type: integer
+          maximum: 1000000
+          minimum: 1
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        tax_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        unit_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+      required:
+      - id
+      - product
+      - product_name
+      - quantity
+      - tax
+    LineInputRequest:
+      type: object
+      properties:
+        product:
+          type: integer
+        quantity:
+          type: integer
+          maximum: 1000000
+          minimum: 1
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          default: '0.00'
+      required:
+      - price
+      - product
+      - quantity
+    LoginRequestRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
+    Month:
+      type: object
+      properties:
+        month:
+          type: string
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+      required:
+      - month
+      - total
+    OpeningBalanceRequest:
+      type: object
+      properties:
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        method:
+          $ref: '#/components/schemas/OpeningMethodEnum'
+        date:
+          type: string
+          format: date
+        name:
+          type: string
+          minLength: 1
+          default: Opening balance
+          maxLength: 200
+      required:
+      - amount
+      - method
+    OpeningMethodEnum:
+      enum:
+      - Cash
+      - Bank transfer
+      type: string
+      description: |-
+        * `Cash` - Cash
+        * `Bank transfer` - Bank transfer
+    PaginatedDocumentReadList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentRead'
+    PaginatedExpenseList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+    PaginatedProductList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+    PaginatedReturnList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Return'
+    PaginatedStockList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Stock'
+    PaginatedSupplierList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Supplier'
+    PaginatedTransactionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+    PaginatedUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    PatchedCompanyRequest:
+      type: object
+      properties:
+        company:
+          type: string
+          maxLength: 200
+        email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        phone:
+          type: string
+          maxLength: 30
+        address:
+          type: string
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        prefix:
+          type: string
+          minLength: 1
+          maxLength: 30
+        next_number:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+        low_stock:
+          type: boolean
+        show_address:
+          type: boolean
+    PatchedCustomerRequest:
+      type: object
+      description: Convert customer records and validate incoming contact details.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        phone:
+          type: string
+          maxLength: 30
+        email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        address:
+          type: string
+        status:
+          $ref: '#/components/schemas/ContactStatusEnum'
+    PatchedDocumentRequest:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/DocumentKindEnum'
+        customer:
+          type: integer
+          nullable: true
+        supplier:
+          type: integer
+          nullable: true
+        date:
+          type: string
+          format: date
+        discount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        notes:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineInputRequest'
+    PatchedExpenseRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        description:
+          type: string
+    PatchedProductRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 80
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        min:
+          type: integer
+          maximum: 1000000000
+          minimum: 0
+        unit:
+          type: string
+          minLength: 1
+          maxLength: 30
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        status:
+          $ref: '#/components/schemas/ContactStatusEnum'
+    PatchedSupplierRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        phone:
+          type: string
+          maxLength: 30
+        email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        address:
+          type: string
+        status:
+          $ref: '#/components/schemas/ContactStatusEnum'
+    PatchedUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        name:
+          type: string
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        role:
+          allOf:
+          - $ref: '#/components/schemas/WorkspaceRoleEnum'
+          default: Staff
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ContactStatusEnum'
+          default: Active
+    PaymentMethodEnum:
+      enum:
+      - Cash
+      - Bank transfer
+      - Card
+      type: string
+      description: |-
+        * `Cash` - Cash
+        * `Bank transfer` - Bank transfer
+        * `Card` - Card
+    PaymentRequest:
+      type: object
+      properties:
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        date:
+          type: string
+          format: date
+        refund:
+          type: boolean
+          default: false
+      required:
+      - amount
+      - method
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        sku:
+          type: string
+          maxLength: 80
+        category:
+          type: string
+          maxLength: 100
+        cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        stock:
+          type: integer
+          readOnly: true
+        min:
+          type: integer
+          maximum: 1000000000
+          minimum: 0
+        unit:
+          type: string
+          maxLength: 30
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        status:
+          $ref: '#/components/schemas/ContactStatusEnum'
+        stock_status:
+          type: string
+          readOnly: true
+      required:
+      - category
+      - id
+      - name
+      - sku
+      - stock
+      - stock_status
+    ProductRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 80
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        min:
+          type: integer
+          maximum: 1000000000
+          minimum: 0
+        unit:
+          type: string
+          minLength: 1
+          maxLength: 30
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        status:
+          $ref: '#/components/schemas/ContactStatusEnum'
+      required:
+      - category
+      - name
+      - sku
+    ReportResponse:
+      type: object
+      properties:
+        report:
+          type: string
+        count:
+          type: integer
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          description: Document, product, expense, or contact balance rows according
+            to the selected report. Profit-loss has no detail rows.
+        summary:
+          $ref: '#/components/schemas/Summary'
+      required:
+      - count
+      - report
+      - results
+      - summary
+    Return:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        document:
+          type: integer
+        date:
+          type: string
+          format: date
+        reason:
+          type: string
+          maxLength: 300
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        tax_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        cost_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReturnItem'
+      required:
+      - document
+      - id
+      - items
+      - reason
+    ReturnInputRequest:
+      type: object
+      properties:
+        document:
+          type: integer
+        date:
+          type: string
+          format: date
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 300
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReturnItemInputRequest'
+      required:
+      - document
+      - items
+      - reason
+    ReturnItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        line:
+          type: integer
+        quantity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        tax_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        cost_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+      required:
+      - id
+      - line
+      - quantity
+    ReturnItemInputRequest:
+      type: object
+      properties:
+        line:
+          type: integer
+        quantity:
+          type: integer
+          maximum: 1000000
+          minimum: 1
+      required:
+      - line
+      - quantity
+    SessionResponse:
+      type: object
+      properties:
+        user:
+          allOf:
+          - $ref: '#/components/schemas/AccountUser'
+          nullable: true
+        csrfToken:
+          type: string
+      required:
+      - csrfToken
+      - user
+    SignupRequestRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 150
+        password1:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password2:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password1
+      - password2
+      - username
+    Stock:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        product:
+          type: integer
+        quantity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        balance:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        kind:
+          type: string
+          maxLength: 30
+        reason:
+          type: string
+          maxLength: 300
+        document:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - balance
+      - created_at
+      - id
+      - kind
+      - product
+      - quantity
+      - reason
+    StockInputRequest:
+      type: object
+      properties:
+        product:
+          type: integer
+        kind:
+          $ref: '#/components/schemas/StockMovementKindEnum'
+        quantity:
+          type: integer
+          maximum: 1000000000
+          minimum: 0
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 300
+      required:
+      - kind
+      - product
+      - quantity
+      - reason
+    StockMovementKindEnum:
+      enum:
+      - In
+      - Out
+      - Adjustment
+      type: string
+      description: |-
+        * `In` - In
+        * `Out` - Out
+        * `Adjustment` - Adjustment
+    Summary:
+      type: object
+      properties:
+        sales:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        purchases:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        expenses:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        net_sales_excluding_tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        cost_of_goods:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        profit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        receivables:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        payables:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        customer_credit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        supplier_credit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        cash_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        bank_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        products:
+          type: integer
+        low_stock_items:
+          type: integer
+        basis:
+          type: string
+      required:
+      - bank_balance
+      - basis
+      - cash_balance
+      - cost_of_goods
+      - customer_credit
+      - expenses
+      - low_stock_items
+      - net_sales_excluding_tax
+      - payables
+      - products
+      - profit
+      - purchases
+      - receivables
+      - sales
+      - supplier_credit
+    Supplier:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        phone:
+          type: string
+          maxLength: 30
+        email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        address:
+          type: string
+        status:
+          $ref: '#/components/schemas/ContactStatusEnum'
+        total:
+          type: string
+          readOnly: true
+        balance:
+          type: string
+          readOnly: true
+        credit:
+          type: string
+          readOnly: true
+      required:
+      - balance
+      - credit
+      - id
+      - name
+      - total
+    SupplierRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        phone:
+          type: string
+          maxLength: 30
+        email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        address:
+          type: string
+        status:
+          $ref: '#/components/schemas/ContactStatusEnum'
+      required:
+      - name
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        date:
+          type: string
+          format: date
+        name:
+          type: string
+          maxLength: 200
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        document:
+          type: integer
+          nullable: true
+        expense:
+          type: integer
+          nullable: true
+        refund:
+          type: boolean
+      required:
+      - amount
+      - category
+      - id
+      - name
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        name:
+          type: string
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        role:
+          allOf:
+          - $ref: '#/components/schemas/WorkspaceRoleEnum'
+          default: Staff
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ContactStatusEnum'
+          default: Active
+      required:
+      - id
+      - username
+    UserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        name:
+          type: string
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        role:
+          allOf:
+          - $ref: '#/components/schemas/WorkspaceRoleEnum'
+          default: Staff
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ContactStatusEnum'
+          default: Active
+      required:
+      - username
+    WorkspaceRoleEnum:
+      enum:
+      - Admin
+      - Manager
+      - Staff
+      type: string
+      description: |-
+        * `Admin` - Admin
+        * `Manager` - Manager
+        * `Staff` - Staff
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

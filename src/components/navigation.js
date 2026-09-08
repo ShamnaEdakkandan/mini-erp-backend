@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Icon } from "./ui";
 import { menus } from "./shared";
-export function Sidebar({ page, navigate, open, onClose, lowCount }) {
+export function Sidebar({ page, navigate, open, onClose, lowCount, user }) {
   return (
     <>
       <div
@@ -24,34 +24,39 @@ export function Sidebar({ page, navigate, open, onClose, lowCount }) {
         </a>
         <div className="nav-label">WORKSPACE</div>
         <nav>
-          {menus.map((m, i) => (
-            <div key={m}>
-              {i === 9 && (
-                <div className="nav-label administration">MANAGEMENT</div>
-              )}
-              <button
-                className={`nav-item ${page === m ? "active" : ""}`}
-                onClick={() => navigate(m)}
-              >
-                <Icon name={m.toLowerCase()} size={19} />
-                <span>{m}</span>
-                {m === "Inventory" && (
-                  <span className="nav-count">{lowCount}</span>
+          {menus
+            .filter((m) => m !== "Users" || user.role === "Admin")
+            .map((m, i) => (
+              <div key={m}>
+                {i === 9 && (
+                  <div className="nav-label administration">MANAGEMENT</div>
                 )}
-                {page === m && <span className="active-dot" />}
-              </button>
-            </div>
-          ))}
+                <button
+                  aria-label={m}
+                  className={`nav-item ${page === m ? "active" : ""}`}
+                  onClick={() => navigate(m)}
+                >
+                  <Icon name={m.toLowerCase()} size={19} />
+                  <span>{m}</span>
+                  {m === "Inventory" && (
+                    <span className="nav-count">{lowCount}</span>
+                  )}
+                  {page === m && <span className="active-dot" />}
+                </button>
+              </div>
+            ))}
         </nav>
         <div className="sidebar-bottom">
           <button
             className="sidebar-profile"
             onClick={() => navigate("Profile")}
           >
-            <span className="avatar alex">AM</span>
+            <span className="avatar alex">
+              {user.username.slice(0, 2).toUpperCase()}
+            </span>
             <span>
-              <b>Alex Morgan</b>
-              <small>Workspace admin</small>
+              <b>{user.username}</b>
+              <small>{user.role || "Admin"}</small>
             </span>
             <Icon name="down" size={15} />
           </button>
@@ -60,8 +65,7 @@ export function Sidebar({ page, navigate, open, onClose, lowCount }) {
     </>
   );
 }
-
-export function Navbar({ page, onMenu, navigate, notify }) {
+export function Navbar({ page, onMenu, navigate, notify, user }) {
   const [search, setSearch] = useState("");
   return (
     <header className="navbar">
@@ -90,7 +94,11 @@ export function Navbar({ page, onMenu, navigate, notify }) {
           {search && (
             <div className="search-results">
               {menus
-                .filter((m) => m.toLowerCase().includes(search.toLowerCase()))
+                .filter(
+                  (m) =>
+                    (m !== "Users" || user.role === "Admin") &&
+                    m.toLowerCase().includes(search.toLowerCase()),
+                )
                 .map((m) => (
                   <button
                     key={m}
@@ -130,7 +138,7 @@ export function Navbar({ page, onMenu, navigate, notify }) {
           aria-label="Your profile"
           onClick={() => navigate("Profile")}
         >
-          AM
+          {user.username.slice(0, 2).toUpperCase()}
         </button>
       </div>
     </header>

@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 export function Icon({ name, size = 20, ...props }) {
   const paths = {
+    "learning guide":
+      "M12 6C9 3 5 3 2 4v15c4-1 7 0 10 2 3-2 6-3 10-2V4c-3-1-7-1-10 2z M12 6v15",
     dashboard: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
     sales: "M3 3v18h18 M7 14l4-4 4 3 6-8",
     purchases: "M3 4h2l3 12h11l3-9H6 M9 21h.01 M18 21h.01",
@@ -56,7 +58,7 @@ export function Icon({ name, size = 20, ...props }) {
 export function StatusBadge({ status }) {
   return (
     <span
-      className={`badge ${["Paid", "Active", "In Stock", "Completed"].includes(status) ? "green" : ["Partial", "Low Stock", "Pending"].includes(status) ? "amber" : "red"}`}
+      className={`badge ${["Paid", "Active", "In Stock", "Completed", "Posted"].includes(status) ? "green" : ["Partial", "Low Stock", "Pending", "Draft"].includes(status) ? "amber" : "red"}`}
     >
       <i />
       {status}
@@ -75,9 +77,14 @@ export function Select({ label, options, ...props }) {
   return (
     <label className="field">
       <span>{label}</span>
-      <select {...props}>
+      <select aria-label={label} {...props}>
         {options.map((o) => (
-          <option key={o}>{o}</option>
+          <option
+            key={typeof o === "object" ? o.value : o}
+            value={typeof o === "object" ? o.value : o}
+          >
+            {typeof o === "object" ? o.label : o}
+          </option>
         ))}
       </select>
     </label>
@@ -95,7 +102,10 @@ export function Modal({ title, children, onClose, wide }) {
       aria-label={title}
       ref={ref}
       className={wide ? "modal wide" : "modal"}
-      onCancel={onClose}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}
@@ -173,7 +183,14 @@ export function Pagination({ page, setPage, total, size }) {
     </div>
   );
 }
-export function DataTable({ columns, rows, onRow, onDelete, compact = false }) {
+export function DataTable({
+  columns,
+  rows,
+  onRow,
+  onDelete,
+  canDelete = () => true,
+  compact = false,
+}) {
   const [page, setPage] = useState(1);
   const size = 6;
   const effectivePage = Math.min(
@@ -214,7 +231,7 @@ export function DataTable({ columns, rows, onRow, onDelete, compact = false }) {
                             <Icon name="chevron" size={16} />
                           </button>
                         )}
-                        {onDelete && (
+                        {onDelete && canDelete(r) && (
                           <button
                             className="delete-button"
                             aria-label={`Delete ${r.id}`}

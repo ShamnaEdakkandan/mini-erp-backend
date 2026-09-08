@@ -1,3 +1,23 @@
+# Node / Next
+node_modules/
+.next/
+dist/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python / Django
+backend/.venv/
+backend/.env
+*.pyc
+__pycache__/
+db.sqlite3
+.e2e.sqlite3
+
+# IDE / OS
+.vscode/
+.DS_Store
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -39,3 +59,25 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python / Django local files
+/backend/.venv/
+__pycache__/
+*.py[cod]
+/backend/db.sqlite3
+/backend/db.sqlite3-*
+
+# Isolated browser verification
+.next-e2e/
+test-results/
+playwright-report/
+backend/.e2e.sqlite3*
+
+e2e-run.log
+e2e-swagger.log
+
+layout-test.log
+
+staff-test.log
+
+profile-test.log

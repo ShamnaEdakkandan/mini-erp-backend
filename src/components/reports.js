@@ -1,136 +1,199 @@
 "use client";
-import { useState } from "react";
-import { Icon, FormInput, DataTable } from "./ui";
-import { money } from "@/lib/mock-data";
-import { col } from "./shared";
-export function Reports({ data, toast }) {
-  const [selected, setSelected] = useState("Sales Report"),
-    [search, setSearch] = useState(""),
-    [from, setFrom] = useState("2026-09-01"),
-    [to, setTo] = useState("2026-09-30");
-  const names = [
-    "Sales Report",
-    "Purchase Report",
-    "Inventory Report",
-    "Expense Report",
-    "Customer Balance Report",
-    "Supplier Balance Report",
-    "Profit & Loss Summary",
-  ];
-  const keys = [
-    "Sales",
-    "Purchases",
-    "Inventory",
-    "Expenses",
-    "Customers",
-    "Suppliers",
-    "Accounting",
-  ];
-  const key = keys[names.indexOf(selected)];
-  const rows = data[key].filter(
-    (r) =>
-      (!r.date || (r.date >= from && r.date <= to)) &&
-      r.name.toLowerCase().includes(search.toLowerCase()),
-  );
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { dateToday, documentRow } from "@/lib/erp-api";
+import { DataTable, FormInput, Pagination, StatCard } from "./ui";
+import { useMoney } from "./currency";
+const reportNames = [
+  ["sales", "Sales Report"],
+  ["purchases", "Purchase Report"],
+  ["inventory", "Inventory Report"],
+  ["expenses", "Expense Report"],
+  ["customer-balances", "Customer Balance Report"],
+  ["supplier-balances", "Supplier Balance Report"],
+  ["profit-loss", "Profit & Loss Summary"],
+];
+export function Reports({ data, revision, toast }) {
+  const money = useMoney();
+  const [selected, setSelected] = useState("sales");
+  const [search, setSearch] = useState("");
+  const [from, setFrom] = useState(dateToday().slice(0, 7) + "-01");
+  const [to, setTo] = useState(dateToday());
+  const [page, setPage] = useState(1);
+  const [retry, setRetry] = useState(0);
+  const [state, setState] = useState({ loading: true });
+  useEffect(() => {
+    let active = true;
+    setState({ loading: true });
+    const timer = setTimeout(() => {
+      const query = new URLSearchParams({
+        search,
+        limit: "6",
+        offset: String((page - 1) * 6),
+      });
+      if (from) query.set("date_from", from);
+      if (to) query.set("date_to", to);
+      api(`reports/${selected}/?${query}`)
+        .then((result) => {
+          if (active) setState({ result });
+        })
+        .catch((error) => {
+          if (active) setState({ error: error.message });
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [selected, search, from, to, page, revision, retry]);
+  const result = state.result;
+  let rows = result?.results || [];
+  const balanceReport = selected.endsWith("balances");
+  if (["sales", "purchases"].includes(selected))
+    rows = rows.map((row) => documentRow(row, data.Customers, data.Suppliers));
+  let columns = [{ key: "name", label: "Name" }];
+  if (selected === "inventory")
+    columns.push(
+      { key: "sku", label: "SKU" },
+      { key: "stock", label: "Stock" },
+      { key: "min", label: "Minimum" },
+    );
+  else if (balanceReport)
+    columns.push(
+      ...[
+        ["total", "Net total"],
+        ["paid", "Paid"],
+        ["balance", "Balance"],
+        ["credit", "Credit"],
+      ].map(([key, label]) => ({ key, label, render: money })),
+    );
+  else
+    columns = [
+      {
+        key: "number",
+        label: "Reference",
+        render: (_, row) => row.number || row.id,
+      },
+      ...columns,
+      { key: "date", label: "Date" },
+      {
+        key: "total",
+        label: "Amount",
+        render: (_, row) => money(row.total ?? row.amount),
+      },
+    ];
   return (
     <>
       <div className="page-heading">
-        <div>
-          <h1>Reports</h1>
-        </div>
+        <h1>Reports</h1>
         <button
           className="secondary"
           onClick={() =>
             toast(
-              "Export preview only — file exports will be available when a backend is connected.",
+              "File exports are not included in this V1. The displayed report uses saved records.",
             )
           }
         >
-          <Icon name="download" size={17} />
           Export report
         </button>
       </div>
       <div className="report-grid">
-        {names.map((n, i) => (
+        {reportNames.map(([key, label]) => (
           <button
-            key={n}
-            onClick={() => setSelected(n)}
-            className={`report-card ${selected === n ? "selected" : ""}`}
+            key={key}
+            className={`report-card ${selected === key ? "selected" : ""}`}
+            onClick={() => {
+              setSelected(key);
+              setPage(1);
+            }}
           >
-            <span className="stat-icon">
-              <Icon name={keys[i].toLowerCase()} />
-            </span>
-            <h3>{n}</h3>
-            <p>View summary and detailed records</p>
-            <Icon name="arrow" size={17} />
+            <h3>{label}</h3>
           </button>
         ))}
       </div>
       <section className="panel">
         <div className="panel-heading">
-          <h2>{selected}</h2>
-          <span className="subtle">Illustrative data</span>
+          <h2>{reportNames.find(([key]) => key === selected)[1]}</h2>
         </div>
         <div className="report-filters">
           <FormInput
             label="From"
             type="date"
             value={from}
-            onChange={(e) => setFrom(e.target.value)}
+            onChange={(event) => {
+              setFrom(event.target.value);
+              setPage(1);
+            }}
+            disabled={balanceReport || selected === "inventory"}
           />
           <FormInput
             label="To"
             type="date"
-            min={from}
             value={to}
-            onChange={(e) => setTo(e.target.value)}
+            min={from || undefined}
+            onChange={(event) => {
+              setTo(event.target.value);
+              setPage(1);
+            }}
+            disabled={selected === "inventory"}
           />
           <FormInput
             label="Search"
-            placeholder="Search report…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            disabled={selected === "profit-loss"}
           />
         </div>
-        {selected === "Profit & Loss Summary" && (
-          <div className="pl-summary">
-            <div>
-              <span>Revenue</span>
-              <strong>$124,580.00</strong>
-            </div>
-            <div>
-              <span>Cost of goods</span>
-              <strong>−$68,240.00</strong>
-            </div>
-            <div>
-              <span>Operating expenses</span>
-              <strong>−$18,450.00</strong>
-            </div>
-            <div>
-              <span>Net profit</span>
-              <strong>$37,890.00</strong>
-            </div>
-            <p>
-              Illustrative monthly summary · not calculated from transactions
-              below
-            </p>
+        <p className="form-description">
+          {selected === "inventory"
+            ? "Current inventory; date filters do not change stock."
+            : balanceReport
+              ? "Balances are cumulative through the To date."
+              : "Posted records and returns within the date range."}
+        </p>
+        {state.loading ? (
+          <p role="status">Loading report...</p>
+        ) : state.error ? (
+          <div className="auth-error" role="alert">
+            {state.error}
+            <button
+              className="secondary"
+              onClick={() => setRetry((value) => value + 1)}
+            >
+              Retry
+            </button>
           </div>
+        ) : selected === "profit-loss" ? (
+          <div className="stats-grid">
+            {[
+              ["Net sales excluding tax", "net_sales_excluding_tax"],
+              ["Cost of goods", "cost_of_goods"],
+              ["Expenses", "expenses"],
+              ["Profit", "profit"],
+            ].map(([title, key]) => (
+              <StatCard
+                key={key}
+                title={title}
+                value={money(result.summary[key])}
+                icon="reports"
+              />
+            ))}
+            <p>{result.summary.basis}</p>
+          </div>
+        ) : (
+          <>
+            <DataTable compact rows={rows} columns={columns} />
+            <Pagination
+              page={page}
+              setPage={setPage}
+              size={6}
+              total={result.count}
+            />
+          </>
         )}
-        <DataTable
-          columns={[
-            col("id", "Reference"),
-            col("name", "Name"),
-            ...(key === "Inventory"
-              ? [col("stock", "Available stock"), col("min", "Minimum stock")]
-              : [
-                  col("amount", "Amount", (_, r) => money(r.total ?? r.amount)),
-                  ...(["Customers", "Suppliers"].includes(key)
-                    ? [col("balance", "Balance", money)]
-                    : [col("date", "Date")]),
-                ]),
-          ]}
-          rows={rows}
-        />
       </section>
     </>
   );

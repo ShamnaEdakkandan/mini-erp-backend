@@ -1,5 +1,4 @@
 import { StatusBadge } from "./ui";
-import { money } from "@/lib/mock-data";
 export const menus = [
   "Dashboard",
   "Sales",
@@ -18,7 +17,7 @@ export const stockStatus = (r) =>
 export const col = (key, label, render) => ({ key, label, render });
 export const person = (v, r) => (
   <div className="person-cell">
-    <span className={`avatar avatar-${v.length % 4}`}>
+    <span aria-hidden="true" className={`avatar avatar-${v.length % 4}`}>
       {v
         .split(" ")
         .map((n) => n[0])
@@ -34,16 +33,3 @@ export const person = (v, r) => (
 export const status = col("status", "Status", (v) => (
   <StatusBadge status={v} />
 ));
-export const invoiceCols = [
-  col("id", "Invoice no.", (v) => <span className="record-id">{v}</span>),
-  col("name", "Customer"),
-  col("date", "Date", (v) =>
-    new Date(v + "T12:00:00").toLocaleDateString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-    }),
-  ),
-  col("total", "Amount", money),
-  status,
-];

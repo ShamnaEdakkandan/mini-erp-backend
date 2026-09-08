@@ -1,0 +1,51 @@
+{% extends "drf_spectacular/swagger_ui.html" %}
+{% block body %}
+<section style="padding:24px;background:#173f3b;color:#fff;font:16px system-ui">
+  <h1 style="margin:0 0 10px">Folio API explorer</h1>
+  <p>Sign in with your ERP account to try requests. Executing write endpoints changes real workspace data.</p>
+  <form id="api-login" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
+    <label>Username<br><input name="username" autocomplete="username" required style="padding:10px"></label>
+    <label>Password<br><input name="password" type="password" autocomplete="current-password" required style="padding:10px"></label>
+    <button type="submit" style="padding:12px">Sign in</button>
+    <button type="button" id="api-logout" style="padding:12px">Log out</button>
+  </form>
+  <p id="api-session" role="status">Checking session...</p>
+  <p><a href="/api/schema/" style="color:#fff">OpenAPI schema</a> · <a href="/admin/" style="color:#fff">Django admin</a></p>
+</section>
+{{ block.super }}
+<script>
+  const sessionLabel = document.getElementById("api-session");
+  async function refreshSession() {
+    const response = await fetch("/api/auth/session/", {credentials: "same-origin", cache: "no-store"});
+    if (!response.ok) throw new Error("Cannot read session.");
+    const session = await response.json();
+    sessionLabel.textContent = session.user ? `Signed in as ${session.user.username} (${session.user.role})` : "Not signed in. Create an account in the ERP or use auth/signup below.";
+    return session;
+  }
+  async function accountRequest(path, body) {
+    const session = await refreshSession();
+    const response = await fetch(`/api/auth/${path}/`, {
+      method: "POST", credentials: "same-origin",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": session.csrfToken},
+      body: JSON.stringify(body)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || "Please check the account details.");
+    await refreshSession();
+  }
+  document.getElementById("api-login").addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector("button");
+    const fields = Object.fromEntries(new FormData(event.currentTarget));
+    button.disabled = true;
+    try { await accountRequest("login", fields); document.querySelector('[name="password"]').value = ""; }
+    catch (error) { sessionLabel.textContent = error.message; }
+    finally { button.disabled = false; }
+  });
+  document.getElementById("api-logout").addEventListener("click", async () => {
+    try { await accountRequest("logout", {}); }
+    catch (error) { sessionLabel.textContent = error.message; }
+  });
+  refreshSession().catch(error => sessionLabel.textContent = error.message);
+</script>
+{% endblock %}

@@ -1,92 +1,153 @@
 "use client";
 import { useState } from "react";
-import { Icon, StatusBadge, SearchFilter, DataTable, StatCard } from "./ui";
-import { money } from "@/lib/mock-data";
-import { stockStatus, col, person, status, invoiceCols } from "./shared";
+import { DataTable, SearchFilter, StatusBadge, StatCard, Icon } from "./ui";
+import { useMoney } from "./currency";
+import { col, person } from "./shared";
+
 export function Records({
   page,
   data,
   onNew,
   openRecord,
   stockAction,
-  returns,
+  openingAction,
   onDelete,
+  canWrite,
+  user,
 }) {
-  const [search, setSearch] = useState(""),
-    [filter, setFilter] = useState("All"),
-    [tab, setTab] = useState("Overview");
-  let columns,
-    options = { values: ["Active", "Inactive"] },
-    filterKey = "status";
+  const money = useMoney();
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [tab, setTab] = useState("Overview");
   let rows = data[page] || [];
+  let options = { values: ["Active", "Inactive"] };
+  let filterKey = "status";
+  let columns = [];
+  const badge = col("status", "Status", (value) => (
+    <StatusBadge status={value} />
+  ));
+  const documents = ["Sales", "Purchases"].includes(page);
   if (["Customers", "Suppliers"].includes(page))
     columns = [
-      col("name", page === "Customers" ? "Customer" : "Supplier", person),
+      col("name", "Name", person),
       col("phone", "Phone"),
-      col(
-        "total",
-        page === "Customers" ? "Total sales" : "Total purchases",
-        money,
-      ),
-      col(
-        "balance",
-        page === "Customers" ? "Outstanding" : "Amount payable",
-        money,
-      ),
-      status,
+      col("total", page === "Customers" ? "Net sales" : "Net purchases", money),
+      col("balance", "Outstanding", money),
+      col("credit", "Credit", money),
+      badge,
     ];
   if (page === "Inventory") {
     options = {
       label: "categories",
-      values: ["Electronics", "Furniture", "Stationery"],
+      values: [...new Set(data.Inventory.map((row) => row.category))],
     };
     filterKey = "category";
-    columns = [
-      col("name", "Product", (v) => <b>{v}</b>),
-      col("sku", "SKU"),
-      col("category", "Category"),
-      col("price", "Selling price", money),
-      col("stock", "Available stock", (v, r) => (
-        <b>
-          {v} <span className="subtle">{r.unit}</span>
-        </b>
-      )),
-      col("min", "Minimum stock"),
-      col("status", "Stock status", (_, r) => (
-        <StatusBadge status={stockStatus(r)} />
-      )),
-    ];
+    columns =
+      tab === "Products"
+        ? [
+            col("name", "Product"),
+            col("sku", "SKU"),
+            col("category", "Category"),
+            col("cost", "Cost", money),
+            col("price", "Price", money),
+            col("unit", "Unit"),
+            col("tax", "Tax %"),
+            badge,
+          ]
+        : [
+            col("name", "Product"),
+            col("sku", "SKU"),
+            col("category", "Category"),
+            col("stock", "Available stock"),
+            col("min", "Minimum"),
+            col("unit", "Unit"),
+            col("stock_status", "Stock status", (value) => (
+              <StatusBadge status={value} />
+            )),
+          ];
+    if (tab === "Movements") {
+      rows = data.movements.map((row) => ({
+        ...row,
+        name:
+          data.Inventory.find((product) => product.id === row.product)?.name ||
+          row.product,
+      }));
+      options = {
+        values: [
+          "In",
+          "Out",
+          "Adjustment",
+          "Sale",
+          "Purchase Bill",
+          "Sales Return",
+          "Purchase Return",
+        ],
+        label: "movements",
+      };
+      filterKey = "kind";
+      columns = [
+        col("name", "Product"),
+        col("kind", "Movement"),
+        col("quantity", "Change"),
+        col("balance", "Stock after"),
+        col("reason", "Reason"),
+        col("created_at", "Recorded", (value) =>
+          new Date(value).toLocaleString(),
+        ),
+      ];
+    }
   }
-  if (["Sales", "Purchases"].includes(page)) {
-    options = { values: ["Paid", "Partial", "Unpaid"] };
+  if (documents) {
+    if (page === "Purchases")
+      rows = rows.filter(
+        (row) =>
+          row.kind === (tab === "Bills" ? "Purchase Bill" : "Purchase Order"),
+      );
+    options = { values: ["Draft", "Posted", "Paid", "Partial", "Unpaid"] };
     columns = [
-      ...invoiceCols.map((c) =>
-        c.key === "name"
-          ? col("name", page === "Sales" ? "Customer" : "Supplier")
-          : c.key === "id"
-            ? col("id", page === "Sales" ? "Invoice no." : "Purchase no.")
-            : c,
-      ),
-      col("paid", "Paid amount", money),
-      col("balance", "Balance", (_, r) => money(r.total - r.paid)),
+      col("number", "Document no."),
+      col("name", page === "Sales" ? "Customer" : "Supplier"),
+      col("date", "Date"),
+      col("total", "Total", money),
+      badge,
     ];
+    if (page === "Sales" || tab === "Bills")
+      columns.push(
+        col("paid", "Paid", money),
+        col("balance", "Balance", money),
+        col("credit", "Credit", money),
+        col("payment_status", "Payment", (value, row) =>
+          row.status === "Draft" ? (
+            "Not posted"
+          ) : (
+            <StatusBadge status={value} />
+          ),
+        ),
+      );
     if (tab === "Returns") {
-      rows = returns.filter((r) => r.module === page);
+      rows = data.returns
+        .filter((row) => data[page].some((doc) => doc.id === row.document))
+        .map((row) => ({
+          ...row,
+          reference: data.documents.find((doc) => doc.id === row.document)
+            ?.number,
+          status: "Completed",
+        }));
       columns = [
         col("id", "Return no."),
-        col("reference", "Original document"),
-        col("name", "Reason"),
+        col("reference", "Document"),
         col("date", "Date"),
-        col("amount", "Amount", money),
-        status,
+        col("reason", "Reason"),
+        col("total", "Return amount", money),
+        badge,
       ];
-      options = { values: ["Pending", "Completed"] };
+      options = null;
     }
   }
   if (page === "Expenses") {
     options = {
       label: "categories",
-      values: ["Rent", "Utilities", "Office", "Transport", "Software"],
+      values: [...new Set(rows.map((row) => row.category))],
     };
     filterKey = "category";
     columns = [
@@ -94,50 +155,79 @@ export function Records({
       col("date", "Date"),
       col("category", "Category"),
       col("amount", "Amount", money),
-      col("method", "Payment method"),
+      col("method", "Method"),
       col("description", "Description"),
     ];
   }
-  if (page === "Users")
-    columns = [col("name", "User", person), col("role", "Role"), status];
+  if (page === "Users") {
+    rows = rows.map((row) => ({ ...row, name: row.name || row.username }));
+    columns = [
+      col("name", "Name", person),
+      col("username", "Username"),
+      col("role", "Role"),
+      badge,
+    ];
+  }
   if (page === "Accounting") {
     options = {
       label: "categories",
-      values: ["Sales", "Purchases", "Expenses"],
+      values: ["Sales", "Purchases", "Expenses", "Opening balance"],
     };
     filterKey = "category";
     columns = [
-      col("id", "Transaction"),
+      col("id", "Reference"),
       col("name", "Description"),
       col("date", "Date"),
       col("category", "Category"),
       col("amount", "Amount", money),
-      col("method", "Payment method"),
-      status,
+      col("method", "Method"),
     ];
   }
   rows = rows.filter(
-    (r) =>
-      Object.values(r).some((v) =>
-        String(v).toLowerCase().includes(search.toLowerCase()),
-      ) &&
-      (filter === "All" || r[filterKey] === filter),
+    (row) =>
+      JSON.stringify(row).toLowerCase().includes(search.toLowerCase()) &&
+      (filter === "All" ||
+        row[filterKey] === filter ||
+        (documents &&
+          row.status === "Posted" &&
+          row.payment_status === filter)),
   );
+  const readOnly =
+    page === "Accounting" || tab === "Returns" || tab === "Movements";
+  function canDelete(record) {
+    return (
+      !readOnly &&
+      (!documents || record.status === "Draft") &&
+      (page !== "Users" ||
+        (record.id !== user.id && record.id !== user.workspace_id))
+    );
+  }
   return (
     <>
       <div className="page-heading">
-        <div>
-          <h1>{page}</h1>
-        </div>
+        <h1>{page}</h1>
         <div className="heading-actions">
-          {page === "Inventory" && (
-            <button className="secondary" onClick={stockAction}>
-              <Icon name="inventory" size={17} />
+          {page === "Inventory" && canWrite && (
+            <button
+              className="secondary"
+              disabled={!data.Inventory.length}
+              onClick={stockAction}
+            >
               Adjust stock
             </button>
           )}
-          {page !== "Accounting" && (
-            <button className="primary" onClick={() => onNew(page, tab)}>
+          {page === "Accounting" && user.role === "Admin" && (
+            <button className="secondary" onClick={openingAction}>
+              Opening balance
+            </button>
+          )}
+          {page !== "Accounting" && canWrite && (
+            <button
+              className="primary"
+              onClick={() =>
+                onNew(page, tab === "Movements" ? "Products" : tab)
+              }
+            >
               <Icon name="plus" size={17} />
               {tab === "Returns"
                 ? "Create return"
@@ -146,7 +236,10 @@ export function Records({
                     Suppliers: "Add supplier",
                     Inventory: "Add product",
                     Sales: "Create invoice",
-                    Purchases: "Create purchase order",
+                    Purchases:
+                      tab === "Bills"
+                        ? "Create purchase bill"
+                        : "Create purchase order",
                     Expenses: "Add expense",
                     Users: "Add user",
                   }[page]}
@@ -157,46 +250,48 @@ export function Records({
       {page === "Accounting" && (
         <div className="stats-grid accounting-stats">
           {[
-            ["Total income", "$124,580", "sales"],
-            ["Total expense", "$86,690", "expenses"],
-            ["Receivables", "$24,680", "wallet"],
-            ["Payables", "$12,450", "purchases"],
-            ["Cash balance", "$12,840", "wallet"],
-            ["Bank balance", "$58,240", "accounting"],
-          ].map(([title, value, icon]) => (
+            ["Income", "sales"],
+            ["Expenses", "expenses"],
+            ["Receivables", "receivables"],
+            ["Payables", "payables"],
+            ["Cash balance", "cash_balance"],
+            ["Bank balance", "bank_balance"],
+          ].map(([title, key]) => (
             <StatCard
-              key={title}
-              {...{ title, value, icon }}
-              foot="Static demo balance"
+              key={key}
+              title={title}
+              value={money(data.summary[key])}
+              icon="accounting"
             />
           ))}
         </div>
       )}
-      {["Sales", "Purchases", "Inventory"].includes(page) && (
+      {(documents || page === "Inventory") && (
         <div className="tabs">
           {(page === "Inventory"
-            ? ["Overview", "Products"]
+            ? ["Overview", "Products", "Movements"]
             : [
                 "Overview",
                 ...(page === "Purchases" ? ["Bills"] : []),
                 "Returns",
               ]
-          ).map((t) => (
+          ).map((value) => (
             <button
-              className={tab === t ? "selected" : ""}
-              key={t}
+              key={value}
+              className={tab === value ? "selected" : ""}
               onClick={() => {
-                setTab(t);
+                setTab(value);
                 setFilter("All");
+                setSearch("");
               }}
             >
-              {t === "Overview"
+              {value === "Overview"
                 ? page === "Sales"
                   ? "All invoices"
                   : page === "Purchases"
                     ? "Purchase orders"
                     : "Stock overview"
-                : t}
+                : value}
             </button>
           ))}
         </div>
@@ -204,41 +299,25 @@ export function Records({
       <section className="panel">
         <div className="panel-heading">
           <h2>
-            {tab === "Returns"
-              ? `${page} returns`
-              : tab === "Bills"
-                ? "Purchase bills"
-                : `All ${page.toLowerCase()}`}{" "}
+            {tab === "Overview" ? `All ${page.toLowerCase()}` : tab}{" "}
             <span className="count-pill">{rows.length}</span>
           </h2>
-          <span className="subtle">
-            Mock data · changes stay in this session
-          </span>
+          {!canWrite && <span className="subtle">Read-only access</span>}
         </div>
         <SearchFilter {...{ search, setSearch, filter, setFilter, options }} />
         <DataTable
-          key={page + search + filter + tab}
-          columns={
-            page === "Inventory" && tab === "Products"
-              ? [
-                  col("name", "Product"),
-                  col("sku", "SKU"),
-                  col("category", "Category"),
-                  col("cost", "Cost", money),
-                  col("price", "Selling price", money),
-                  col("unit", "Unit"),
-                  col("tax", "Tax", (v) => v + "%"),
-                  status,
-                ]
-              : columns
-          }
+          key={page + tab + filter + search}
+          columns={columns}
           rows={rows}
-          onDelete={(record) => onDelete(page, record, tab)}
           onRow={
-            tab === "Returns" || page === "Accounting"
+            page === "Accounting" || tab === "Movements"
               ? undefined
-              : (r) => openRecord(page, r, tab)
+              : (row) => openRecord(page, row, tab)
           }
+          onDelete={
+            canWrite && user.role !== "Staff" && !readOnly ? (row) => onDelete(page, row) : undefined
+          }
+          canDelete={canDelete}
         />
       </section>
     </>
