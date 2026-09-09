@@ -62,6 +62,7 @@ next-env.d.ts
 
 # Python / Django local files
 /backend/.venv/
+/backend/staticfiles/
 __pycache__/
 *.py[cod]
 /backend/db.sqlite3

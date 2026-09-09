@@ -1,5 +1,15 @@
 # Folio — Basic ERP frontend
 
+## Startup and connection fixes — 2026-09-09
+
+Corrected unavailable WhiteNoise/Gunicorn dependency versions and updated the PostgreSQL driver for Python 3.12. Installed the declared backend dependencies, fixing the missing `corsheaders` startup error. Django now uses its supported `STORAGES` configuration, correct WhiteNoise middleware ordering, and configurable `DJANGO_CSRF_TRUSTED_ORIGINS`; `DJANGO_DEBUG=false` is case-insensitive.
+
+The frontend rejects invalid API responses with a readable error. Its API rewrite accepts a trailing slash in `DJANGO_API_ORIGIN`, and the Vercel helper now sets that actual build variable. The root Procfile changes into `backend` before starting Gunicorn. Collected static assets are ignored by Git.
+
+Verified: 46 Django tests, 8 browser tests, production frontend build, Django startup check, dependency consistency check, static asset collection, and warning-free OpenAPI validation all passed. Browser tests use their separate database; normal business records were not changed.
+
+To update a local installation, run `backend\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt`, then restart Django and Next.js. For deployment, set `DJANGO_ALLOWED_HOSTS` and `DJANGO_CSRF_TRUSTED_ORIGINS` to your actual hostnames and HTTPS origins respectively. Keep the production secret/database configuration in environment variables. Live cloud deployment is not verified by local tests.
+
 A responsive Next.js 16 / React 19 / Tailwind CSS 4 interface connected to a Django REST Framework backend. All Basic ERP modules use workspace-scoped SQLite records, session login and role-based permissions.
 
 ## Run

@@ -7,7 +7,7 @@ const nextConfig = {
     return [
       {
         source: "/api/:path*/",
-        destination: `${process.env.DJANGO_API_ORIGIN || "http://127.0.0.1:8000"}/api/:path*/`,
+        destination: `${(process.env.DJANGO_API_ORIGIN || "http://127.0.0.1:8000").replace(/\/+$/, "")}/api/:path*/`,
       },
     ];
   },

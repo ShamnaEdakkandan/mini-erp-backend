@@ -43,10 +43,15 @@ export async function api(path, { method = "GET", body } = {}) {
     }
     const message = details
       ? explain(details)
-      : "Request failed. Check the backend connection and refresh your session.";
+      : response.status >= 500
+        ? "The backend is unavailable. Start Django or check its server logs, then retry."
+        : "Request failed. Check the backend connection and refresh your session.";
     const error = new Error(message);
     error.status = response.status;
     throw error;
+  }
+  if (response.status !== 204 && (!data || typeof data !== "object")) {
+    throw new Error("The backend returned an invalid response. Check the API address and retry.");
   }
   if (data?.csrfToken) csrfToken = data.csrfToken;
   return data;
